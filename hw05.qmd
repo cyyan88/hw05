@@ -1,0 +1,112 @@
+---
+title: "Homework 5: Wordle on Keyboard"
+name: "Cynthia Yan"
+date: "04.10.2022"
+format: "pdf"
+editor: "visual"
+---
+
+```{r load-packages, message = FALSE}
+library(tidyverse)
+library(ggkeyboard) # https://github.com/sharlagelfand/ggkeyboard
+```
+
+## Task 1: Find the first letter of Wordle words
+
+```{r}
+wordle <- read_csv("https://raw.githubusercontent.com/tabatkins/wordle-list/main/words", col_names = "word")
+```
+
+```{r}
+wordle <- wordle %>%
+  mutate(first = str_sub(word, start = 1, end = 1),
+         second = str_sub(word, start = 2, end = 2),
+         third = str_sub(word, start = 3, end = 3),
+         fourth = str_sub(word, start = 4, end = 4),
+         fifth = str_sub(word, start = 5, end = 5))
+```
+
+```{r}
+wordle_counts <- wordle %>%
+  count(first, sort = TRUE)
+```
+
+## Task 2: Draw a keyboard
+
+```{r}
+ggkeyboard(tkl, layout = "iso")
+```
+
+## 
+**Task 3: Color keyboard keys based on frequency of first letter**
+
+```{r}
+wordle_counts %>%
+  summarise(
+    min = min(n),
+    mean = mean(n),
+    sd = sd(n),
+    max = max(n),
+    q20 = quantile(n, 0.20),
+    q40 = quantile(n, 0.40),
+    q60 = quantile(n, 0.60),
+    q80 = quantile(n, 0.80)
+  )
+ggplot(wordle_counts, aes(x = n)) +
+  geom_histogram(binwidth = 100)
+ggplot(wordle_counts, aes(x = first, y = n)) +
+  geom_col() +
+  geom_hline(yintercept = 80)
+```
+
+```{r}
+wordle_counts <- wordle_counts %>%
+  mutate(
+    color = case_when(
+      n == 0                  ~ "#2D669B",
+      n <=  20                ~ "#359CA8",
+      n > 20  & n <= 189      ~ "#B8C222",
+      n > 189 & n <= 325      ~ "#EEDD49",
+      n > 325 & n <= 595      ~ "#F2BC4A",
+      n > 595 & n <= 1000     ~ "#FB704A",
+      n > 1000  ~ "#BE372C"
+      ),
+    first = str_to_upper(first)
+  ) %>%
+  arrange(first)
+```
+
+```{r}
+ggkeyboard(sixty_percent, palette = keyboard_palette("magic")) %>%
+  highlight_keys(
+    keys = c("Z", "X", "C", "V"), 
+    fill = c("red", "pink", "orange", "blue"), 
+    alpha = 0.7, 
+    colour = NA
+    )
+ggkeyboard(sixty_percent, palette = keyboard_palette("magic")) %>%
+  highlight_keys(
+    keys = c("C", "N", "S"), 
+    fill = c("red", "pink", "orange"), 
+    alpha = 0.7, 
+    colour = NA
+    )
+```
+
+```{r}
+keys <- read_csv("https://raw.githubusercontent.com/sharlagelfand/ggkeyboard/061f0d9084d76d576200e81439311983e1d50d93/data-raw/sixty_percent.csv")
+wordle_counts_ordered <- keys %>% 
+  filter(key_label %in% LETTERS) %>%
+  select(key) %>%
+  left_join(wordle_counts, by = c("key" = "first"))
+```
+
+```{r}
+ggkeyboard(sixty_percent, palette = keyboard_palette("magic")) %>%
+  highlight_keys(
+    keys = wordle_counts_ordered$key, 
+    fill = wordle_counts_ordered$color, 
+    alpha = 0.7, 
+    colour = NA
+    )
+```
