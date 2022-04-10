@@ -6,6 +6,8 @@ format: "pdf"
 editor: "visual"
 ---
 
+# Coding Out Loud
+
 ```{r load-packages, message = FALSE}
 library(tidyverse)
 library(ggkeyboard) # https://github.com/sharlagelfand/ggkeyboard
@@ -37,7 +39,6 @@ wordle_counts <- wordle %>%
 ggkeyboard(tkl, layout = "iso")
 ```
 
-## 
 **Task 3: Color keyboard keys based on frequency of first letter**
 
 ```{r}
@@ -107,6 +108,94 @@ ggkeyboard(sixty_percent, palette = keyboard_palette("magic")) %>%
     keys = wordle_counts_ordered$key, 
     fill = wordle_counts_ordered$color, 
     alpha = 0.7, 
+    colour = NA
+    )
+```
+
+# Additional Work
+
+## Task 4: Color by most frequent letter
+
+### Find Letter Counts
+
+```{r}
+new_wordle <- read_csv("https://raw.githubusercontent.com/tabatkins/wordle-list/main/words", col_names = "word") 
+
+new_wordle <- new_wordle %>%
+  mutate(first = str_sub(word, start = 1, end = 1),
+         second = str_sub(word, start = 2, end = 2),
+         third = str_sub(word, start = 3, end = 3),
+         fourth = str_sub(word, start = 4, end = 4),
+         fifth = str_sub(word, start = 5, end = 5))
+
+f <- tibble(new_wordle$first) %>%
+  mutate(
+    letters = new_wordle$first
+  ) %>%
+  select(letters)
+
+s <- tibble(new_wordle$second) %>%
+  mutate(
+    letters = new_wordle$second
+  ) %>%
+  select(letters)
+
+t <- tibble(new_wordle$third) %>%
+  mutate(
+    letters = new_wordle$third
+  ) %>%
+  select(letters)
+
+fo <- tibble(new_wordle$fourth) %>%
+  mutate(
+    letters = new_wordle$fourth
+  ) %>%
+  select(letters)
+
+fi <- tibble(new_wordle$fifth) %>%
+  mutate(
+    letters = new_wordle$fifth
+  ) %>%
+  select(letters)
+
+all_letters <- rbind(f, s, t, fo, fi)
+
+letter_counts <- all_letters %>%
+  count(letters, sort = TRUE)
+```
+
+### Create Color Scheme
+
+```{r}
+letter_counts <- letter_counts %>%
+  mutate(
+    color = case_when(
+      n == 0                  ~ "#fff9d9",
+      n <=  1000                ~ "#FFF59D",
+      n > 1000  & n <= 2000      ~ "#DCE775",
+      n > 2000 & n <= 3000      ~ "#8BC34A",
+      n > 3000 & n <= 4000      ~ "#388E3C",
+      n > 4000 & n <= 5000     ~ "#1c4d18",
+      n > 5000  ~ "#0e2e0b"
+      ),
+    letters = str_to_upper(letters)
+  ) %>%
+  arrange(letters)
+```
+
+### Draw on Keyboard
+
+```{r}
+letter_counts_ordered <- keys %>% 
+  filter(key_label %in% LETTERS) %>%
+  select(key) %>%
+  left_join(letter_counts, by = c("key" = "letters"))
+
+ggkeyboard(sixty_percent, palette = keyboard_palette("magic")) %>%
+  highlight_keys(
+    keys = letter_counts_ordered$key, 
+    fill = letter_counts_ordered$color, 
+    alpha = 0.9, 
     colour = NA
     )
 ```
